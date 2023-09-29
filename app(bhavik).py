@@ -53,19 +53,21 @@ def classify_audio_clip(clip):
 
 st.set_page_config(layout="wide")
 
+# ...
+
 def main():
     
     st.title("Voice Deepfakes Detector")
 
     upload_file = st.file_uploader("Upload an audio file", type=["wav", "mp3"])
 
-    if upload_file is not None:
+    if upload_file is not None:  # Check if a file has been uploaded
         if st.button("Analyze audio"):
             col1, col2, col3 = st.columns(3)
 
             with col1:
                 st.info("Below are the results: ")
-                #load and classify the audio file
+                # Load and classify the audio file
                 audio_clip = load_audio(upload_file)
                 result = classify_audio_clip(audio_clip)
                 result = result.item()
@@ -73,15 +75,14 @@ def main():
                 st.success(f"The uploaded audio is {result * 100:.2f}% likely to be AI generated.")
 
             with col2:
-                st.audio("Your uploaded audio file is as below: ")
-                st.audio(upload_file)
-                #create a waveform
+                st.audio("Your uploaded audio file is as below:", audio_clip)  # Pass audio data here
+                # Create a waveform
                 fig = px.line()
                 fig.add_scatter(x=list(range(len(audio_clip.squeeze()))), y=audio_clip.squeeze())
                 fig.update_layout(
-                    title = "Waveform plot of your audio file",
-                    xaxis_title = "Time",
-                    yaxis_title = "Amplitude",
+                    title="Waveform plot of your audio file",
+                    xaxis_title="Time",
+                    yaxis_title="Amplitude",
                     font=dict(
                         family="Courier New, monospace",
                         size=18,
@@ -95,6 +96,9 @@ def main():
                 st.info("Disclaimer")
                 st.warning("This classification/detection mechanisms are not always accurate. Please do not use this as a sole basis to determine if an audio is AI generated or not. This tool is just to help you get an approximate overview. The results generated should only be considered as a strong signal.")
 
-
 if __name__ == "__main__":
     main()
+
+
+
+
