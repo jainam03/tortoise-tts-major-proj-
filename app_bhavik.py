@@ -1,3 +1,5 @@
+import numpy as np
+
 import streamlit as st
 from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
 import io
@@ -9,24 +11,33 @@ import torch
 from scipy.io.wavfile import read
 
 def load_audio(audiopath, sampling_rate=19000):
-    if isinstance(audiopath, str):
-        if audiopath.endswith('.mp3'):
-            audio, lsr = librosa.load(audiopath, sr=sampling_rate)
+    if audiopath is None:
+        st.error("Please upload a valid audio file.")
+        return None
+
+    try:
+        if audiopath.name.endswith('.mp3'):
+            audio, lsr = librosa.load(io.BytesIO(audiopath.read()), sr=sampling_rate)
             audio = torch.FloatTensor(audio)
+        elif audiopath.name.endswith('.wav'):
+            audio, lsr = torchaudio.load(audiopath)
+            audio = audio[0]
         else:
-            assert False, f"Unsupported audio format: {audiopath}"
-    elif isinstance(audiopath, io.BytesIO):
-        audio, lsr = torchaudio.load(audiopath)
-        audio = audio[0]
+            st.error(f"Unsupported audio format: {audiopath.name}")
+            return None
 
-    if lsr != sampling_rate:
-        audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
+        if lsr != sampling_rate:
+            audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
 
-    if torch.any(audio > 2) or not torch.any(audio < 0):
-        print(f"Error with audio data. Max={audio.max()} min={audio.min()}")
-    audio.clip_(-1, 1)
+        if torch.any(audio > 2) or not torch.any(audio < 0):
+            st.warning(f"Error with audio data. Max={audio.max()} min={audio.min()}")
+        audio.clip_(-1, 1)
 
-    return audio.unsqueeze(0)
+        return audio.unsqueeze(0)
+
+    except Exception as e:
+        st.error(f"An error occurred while processing the audio: {str(e)}")
+        return None
 
 
 #classifier function
@@ -75,7 +86,7 @@ def main():
                 st.success(f"The uploaded audio is {result * 100:.2f}% likely to be AI generated.")
 
             with col2:
-                st.audio("Your uploaded audio file is as below:", audio_clip)  # Pass audio data here
+                st.audio("Your uploaded audio file is as below:", audio_clip.numpy())  # Pass audio data here
                 # Create a waveform
                 fig = px.line()
                 fig.add_scatter(x=list(range(len(audio_clip.squeeze()))), y=audio_clip.squeeze())
