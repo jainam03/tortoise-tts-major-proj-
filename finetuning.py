@@ -46,7 +46,7 @@
 
 import torch
 # from tortoise.models import AudioMiniEncoderWithClassifierHead
-from tortoise import AudioMiniEncoderWithClassifierHead
+from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
 from torchaudio import load
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
@@ -58,7 +58,7 @@ deepfake_voice_data = []
 deepfake_labels = []
 
 for i in range(50):
-    audio, _ = load("deepfake_voice_files_{}.mp3".format(i), sr=19000)
+    audio, _ = load("deepfake_voice_files_{}.mp3".format(i))
     deepfake_voice_data.append(audio)
     # Assign labels based on the class (e.g., 0 for genuine, 1 for deepfake)
     deepfake_labels.append(1)  # You should label your data correctly
