@@ -135,7 +135,5 @@ dmypy.json
 results/*
 debug_states/*
 
-sounds/
-
 .vscode/
 ```

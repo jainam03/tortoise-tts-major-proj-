@@ -22,3 +22,5 @@ pydantic==1.9.1
 py-cpuinfo
 hjson
 psutil
+torchvision
+streamlit
