@@ -10,7 +10,7 @@ import torchaudio
 import torch
 from scipy.io.wavfile import read
 
-def load_audio(audiopath, sampling_rate=19000):
+def load_audio(audiopath, sampling_rate=10000):
     if audiopath is None:
         st.error("Please upload a valid audio file.")
         return None
@@ -86,7 +86,7 @@ def main():
                 st.success(f"The uploaded audio is {result * 100:.2f}% likely to be AI generated.")
 
             with col2:
-                st.audio("Your uploaded audio file is as below:", audio_clip.numpy())  # Pass audio data here
+                st.audio("Your uploaded audio file is as below:", audio_clip)  # Pass audio data here
                 # Create a waveform
                 fig = px.line()
                 fig.add_scatter(x=list(range(len(audio_clip.squeeze()))), y=audio_clip.squeeze())
@@ -94,11 +94,6 @@ def main():
                     title="Waveform plot of your audio file",
                     xaxis_title="Time",
                     yaxis_title="Amplitude",
-                    font=dict(
-                        family="Courier New, monospace",
-                        size=18,
-                        color="#7f7f7f"
-                    )
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
