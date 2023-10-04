@@ -23,4 +23,4 @@ py-cpuinfo
 hjson
 psutil
 torchvision
-streamlit
+streamlit==1.27.0
