@@ -1,6 +1,6 @@
 tqdm
 rotary_embedding_torch
-transformers==4.31.0
+transformers
 tokenizers
 inflect
 progressbar
@@ -15,11 +15,11 @@ torchaudio
 threadpoolctl
 llvmlite
 appdirs
-nbconvert==5.3.1
-tornado==4.2
+nbconvert
+tornado
 pydantic
 py-cpuinfo
 hjson
 psutil
 torchvision
-streamlit==1.27.0
+streamlit
