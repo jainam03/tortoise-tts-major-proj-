@@ -10,7 +10,7 @@ scipy
 librosa
 ffmpeg
 numpy
-numba==0.48.0
+numba
 torchaudio
 threadpoolctl
 llvmlite
@@ -23,4 +23,4 @@ hjson
 psutil
 torchvision
 streamlit
-tensorflow==2.10.0
+tensorflow
