@@ -1,4 +1,6 @@
 import numpy as np
+import os
+from pydub import AudioSegment
 
 import streamlit as st
 from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
@@ -9,6 +11,13 @@ import torch.nn.functional as F
 import torchaudio
 import torch
 from scipy.io.wavfile import read
+
+MAX_ALLOWED_DURATION = 6000
+
+def trim_audio(audio, max_duration):
+    if len(audio) > max_duration:
+        audio = audio[:max_duration]
+    return audio
 
 
 def load_audio(audiopath, sampling_rate=10000):
@@ -40,30 +49,6 @@ def load_audio(audiopath, sampling_rate=10000):
         st.error(f"An error occurred while processing the audio: {str(e)}")
         return None
 
-
-# classifier function
-
-# def classify_audio_clip(clip):
-#     classifier = AudioMiniEncoderWithClassifierHead(2, spec_dim=1, embedding_dim=512, depth=5, downsample_factor=2, attn_blocks=4, num_attn_heads=4, base_channels=32, dropout=0, kernel_size=5, distribute_zero_label=False)
-
-#     state_dict = torch.load('./mel_norms.pth', map_location=torch.device('cpu'))
-#     # state_dict = torch.load('state_dict.pkl')
-
-#     # if torch.is_tensor(state_dict):
-#     #     state_dict = io.BytesIO(state_dict.numpy())
-
-#     # classifier.load_state_dict(torch.load(state_dict, map_location=torch.device('cpu')))
-
-#     classifier.load_state_dict(state_dict)
-
-#     classifier.eval()
-
-#     clip = clip.cpu().unsqueeze(0)
-#     with torch.no_grad():
-#         results = F.softmax(classifier(clip), dim=1)
-#     return results[0][0]
-
-
 def classify_audio_clip(clip):
     model1 = AudioMiniEncoderWithClassifierHead(
         2,
@@ -85,11 +70,6 @@ def classify_audio_clip(clip):
         depth=5,
         downsample_factor=2,
         attn_blocks=4,
-        num_attn_heads=4,
-        base_channels=32,
-        dropout=0,
-        kernel_size=5,
-        distribute_zero_label=False,
     )
 
     # Load the state_dict of both models
@@ -105,58 +85,54 @@ def classify_audio_clip(clip):
 
     clip = clip.cpu().unsqueeze(0)
     with torch.no_grad():
-        result1 = F.softmax(model1(clip), dim=1)
-        result2 = F.softmax(model2(clip), dim=1)
+        output1 = model1(clip)
+        output2 = model2(clip)
 
-    # Perform ensembling and calculate the final result
-    result = (result1 + result2) / 2
+    # Define weights for each model
+    model1_weight = 0.7
+    model2_weight = 0.3
+
+    # Perform weighted ensembling
+    ensembled_output = (output1 * model1_weight) + (output2 * model2_weight)
+
+    # Apply softmax to the ensembled output
+    result = F.softmax(ensembled_output, dim=-1)
     return result[0][0]
 
 
 st.set_page_config(layout="wide")
-
-# ...
-
 
 def main():
     st.title("Voice Deepfakes Detector")
 
     upload_file = st.file_uploader("Upload an audio file", type=["wav", "mp3"])
 
-    if upload_file is not None:  # Check if a file has been uploaded
+    if upload_file is not None:
+        # Load and classify the audio file
+        audio_clip = load_audio(upload_file)
+
+        # Check the duration of the audio
+        audio_duration = len(audio_clip)
+        if audio_duration > MAX_ALLOWED_DURATION:
+            st.warning(f"Audio duration exceeds the allowed maximum. Trimming to {MAX_ALLOWED_DURATION / 1000} seconds.")
+            audio_clip = trim_audio(audio_clip, MAX_ALLOWED_DURATION)
+
+        if st.button("Play audio file"):
+            st.audio(audio_clip, format="audio/wav")
+
         if st.button("Analyze audio"):
             col1, col2, col3 = st.columns(3)
 
             with col1:
                 st.info("Below are the results: ")
-                # Load and classify the audio file
-                audio_clip = load_audio(upload_file)
                 result = classify_audio_clip(audio_clip)
                 result = result.item()
                 st.info(f"Result probability: {result}")
-                st.success(
-                    f"The uploaded audio is {result * 100:.2f}% likely to be AI generated."
-                )
-
-            # with col2:
-            #     st.audio("Your uploaded audio file is as below:", audio_clip)  # Pass audio data here
-            #     # Create a waveform
-            #     fig = px.line()
-            #     fig.add_scatter(x=list(range(len(audio_clip.squeeze()))), y=audio_clip.squeeze())
-            #     fig.update_layout(
-            #         title="Waveform plot of your audio file",
-            #         xaxis_title="Time",
-            #         yaxis_title="Amplitude",
-            #     )
-
-            #     st.plotly_chart(fig, use_container_width=True)
+                st.success(f"The uploaded audio is {result * 100:.2f}% likely to be AI generated.")
 
             with col3:
                 st.info("Disclaimer")
-                st.warning(
-                    "This classification/detection mechanisms are not always accurate. Please do not use this as a sole basis to determine if an audio is AI generated or not. This tool is just to help you get an approximate overview. The results generated should only be considered as a strong signal."
-                )
-
+                st.warning("This classification/detection mechanism is not always accurate. Please do not use this as the sole basis to determine if an audio is AI-generated or not. This tool is just to help you get an approximate overview. The results generated should only be considered as a strong signal.")
 
 if __name__ == "__main__":
     main()
