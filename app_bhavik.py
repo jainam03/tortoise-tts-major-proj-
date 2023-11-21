@@ -78,18 +78,19 @@ def classify_audio_clip(clip):
     )
 
     model2 = AudioMiniEncoderWithClassifierHead(
-    2,
-    spec_dim=9,
-    embedding_dim=512,
-    depth=5,
-    downsample_factor=2,
-    attn_blocks=4,
-    num_attn_heads=4,
-    base_channels=32,
-    dropout=0,
-    kernel_size=5,
-    distribute_zero_label=False,
-) # Your SimpleRNN model
+        2,
+        spec_dim=1,
+        embedding_dim=512,
+        depth=5,
+        downsample_factor=2,
+        attn_blocks=4,
+        num_attn_heads=4,
+        base_channels=32,
+        dropout=0,
+        kernel_size=5,
+        distribute_zero_label=False,
+    )
+# Your SimpleRNN model
 
     # Load the state_dict of both models
     state_dict1 = torch.load("./mel_norms.pth", map_location=torch.device("cpu"))
@@ -103,6 +104,11 @@ def classify_audio_clip(clip):
     model2.eval()
 
     clip = clip.cpu().unsqueeze(0)
+
+    # clip = clip.permute(0, 2, 1)
+
+    # clip = clip.view(clip.size(0), 1, -1)
+    
     with torch.no_grad():
         output1 = model1(clip)
         output2 = model2(clip)
