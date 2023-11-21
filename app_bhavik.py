@@ -94,7 +94,7 @@ def classify_audio_clip(clip):
 
     # Load the state_dict of both models
     state_dict1 = torch.load("./mel_norms.pth", map_location=torch.device("cpu"))
-    state_dict2 = torch.load("./model.pth", map_location=torch.device("cpu"))
+    state_dict2 = torch.load("./model_new.pth", map_location=torch.device("cpu"))
 
     # Load the state_dict into each model
     model1.load_state_dict(state_dict1, strict=False)
@@ -105,20 +105,20 @@ def classify_audio_clip(clip):
 
     clip = clip.cpu().unsqueeze(0)
 
-    # clip = clip.permute(0, 2, 1)
+    clip = clip.permute(0, 2, 1)
 
-    # clip = clip.view(clip.size(0), 1, -1)
+    clip = clip.view(clip.size(0), 1, -1)
     
     with torch.no_grad():
         output1 = model1(clip)
         output2 = model2(clip)
 
     # Define weights for each model
-    model1_weight = 0.7
-    model2_weight = 0.3
+    model1_weight = 0.6
+    model2_weight = 0.4
 
     # Perform weighted ensembling
-    ensembled_output = (output1 * model1_weight) + (output2 * model2_weight)
+    ensembled_output = (output1 * model1_weight) + ((output2 * model2_weight)/2)
 
     # Apply softmax to the ensembled output
     result = F.softmax(ensembled_output, dim=-1)
@@ -145,7 +145,8 @@ def main():
             audio_clip = trim_audio(audio_clip, MAX_ALLOWED_DURATION)
 
         if st.button("Play audio file"):
-            st.audio(audio_clip, format="audio/wav")
+            audio_numpy = audio_clip.squeeze().numpy()
+            st.audio(audio_numpy, format="audio/wav", sample_rate=10000)
 
         if st.button("Analyze audio"):
             col1, col2, col3 = st.columns(3)
@@ -154,7 +155,7 @@ def main():
                 st.info("Below are the results: ")
                 result = classify_audio_clip(audio_clip)
                 result = result.item()
-                st.info(f"Result probability: {result}")
+                # st.info(f"Result probability: {result}")
                 st.success(
                     f"The uploaded audio is {result * 100:.2f}% likely to be AI generated."
                 )
