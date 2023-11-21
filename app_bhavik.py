@@ -1,17 +1,11 @@
-import numpy as np
-import os
-from pydub import AudioSegment
-
 import streamlit as st
-from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
 import io
 import librosa
-import plotly.express as px
 import torch.nn.functional as F
 import torch.nn as nn
 import torchaudio
 import torch
-from scipy.io.wavfile import read
+from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
 
 class SimpleRNN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
