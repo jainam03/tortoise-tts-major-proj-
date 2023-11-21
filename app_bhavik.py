@@ -8,9 +8,22 @@ import io
 import librosa
 import plotly.express as px
 import torch.nn.functional as F
+import torch.nn as nn
 import torchaudio
 import torch
 from scipy.io.wavfile import read
+
+class SimpleRNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(SimpleRNN, self).__init__()
+        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        out, _ = self.rnn(x)
+        out = self.fc(out[:, -1, :])
+        return out
+
 
 MAX_ALLOWED_DURATION = 6000
 
@@ -63,18 +76,24 @@ def classify_audio_clip(clip):
         kernel_size=5,
         distribute_zero_label=False,
     )
+
     model2 = AudioMiniEncoderWithClassifierHead(
-        2,
-        spec_dim=1,
-        embedding_dim=512,
-        depth=5,
-        downsample_factor=2,
-        attn_blocks=4,
-    )
+    2,
+    spec_dim=9,
+    embedding_dim=512,
+    depth=5,
+    downsample_factor=2,
+    attn_blocks=4,
+    num_attn_heads=4,
+    base_channels=32,
+    dropout=0,
+    kernel_size=5,
+    distribute_zero_label=False,
+) # Your SimpleRNN model
 
     # Load the state_dict of both models
     state_dict1 = torch.load("./mel_norms.pth", map_location=torch.device("cpu"))
-    state_dict2 = torch.load("./custommodel.pth", map_location=torch.device("cpu"))
+    state_dict2 = torch.load("./model.pth", map_location=torch.device("cpu"))
 
     # Load the state_dict into each model
     model1.load_state_dict(state_dict1, strict=False)
@@ -114,7 +133,9 @@ def main():
         # Check the duration of the audio
         audio_duration = len(audio_clip)
         if audio_duration > MAX_ALLOWED_DURATION:
-            st.warning(f"Audio duration exceeds the allowed maximum. Trimming to {MAX_ALLOWED_DURATION / 1000} seconds.")
+            st.warning(
+                f"Audio duration exceeds the allowed maximum. Trimming to {MAX_ALLOWED_DURATION / 1000} seconds."
+            )
             audio_clip = trim_audio(audio_clip, MAX_ALLOWED_DURATION)
 
         if st.button("Play audio file"):
@@ -128,11 +149,16 @@ def main():
                 result = classify_audio_clip(audio_clip)
                 result = result.item()
                 st.info(f"Result probability: {result}")
-                st.success(f"The uploaded audio is {result * 100:.2f}% likely to be AI generated.")
+                st.success(
+                    f"The uploaded audio is {result * 100:.2f}% likely to be AI generated."
+                )
 
             with col3:
                 st.info("Disclaimer")
-                st.warning("This classification/detection mechanism is not always accurate. Please do not use this as the sole basis to determine if an audio is AI-generated or not. This tool is just to help you get an approximate overview. The results generated should only be considered as a strong signal.")
+                st.warning(
+                    "This classification/detection mechanism is not always accurate. Please do not use this as the sole basis to determine if an audio is AI-generated or not. This tool is just to help you get an approximate overview. The results generated should only be considered as a strong signal."
+                )
+
 
 if __name__ == "__main__":
     main()
